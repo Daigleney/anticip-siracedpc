@@ -1216,45 +1216,22 @@ async function generateScenarios() {
     `**Horizon d'analyse :** ${horizon}`,
   ].filter(Boolean).join('\n');
 
-  const systemPrompt = `Tu es un expert en gestion de crise et sécurité civile, spécialisé dans le département des Bouches-du-Rhône (13). Tu travailles en appui du SIRACEDPC de la préfecture de Marseille.
+  const systemPrompt = `Expert gestion de crise SIRACEDPC — Bouches-du-Rhône (13). Génère 4 scénarios d'évolution en JSON strict, SANS markdown ni texte autour. Sois concis : 2000 tokens max en tout.
 
-Ta mission : analyser une situation de crise en cours et générer exactement 4 scénarios d'évolution distincts sur l'horizon temporel demandé, en tenant compte des spécificités géographiques, climatiques et humaines du département.
+Structure JSON exacte — reproduis-la sans aucun commentaire entre parenthèses :
+{"titre_analyse":"","synthese_initiale":"","scenarios":[{"id":"optimiste","resume":"","probabilite":0,"confiance_ia":0,"niveau_alerte_final":"Veille","timeline":[{"heure":"","evenement":""}],"effets_cascade":[""],"communes_impactees":[""],"actions_prioritaires":[""],"points_vigilance":""},{"id":"probable","resume":"","probabilite":0,"confiance_ia":0,"niveau_alerte_final":"Vigilance","timeline":[{"heure":"","evenement":""}],"effets_cascade":[""],"communes_impactees":[""],"actions_prioritaires":[""],"points_vigilance":""},{"id":"dégradé","resume":"","probabilite":0,"confiance_ia":0,"niveau_alerte_final":"Alerte","timeline":[{"heure":"","evenement":""}],"effets_cascade":[""],"communes_impactees":[""],"actions_prioritaires":[""],"points_vigilance":""},{"id":"catastrophique","resume":"","probabilite":0,"confiance_ia":0,"niveau_alerte_final":"Urgence","timeline":[{"heure":"","evenement":""}],"effets_cascade":[""],"communes_impactees":[""],"actions_prioritaires":[""],"points_vigilance":""}],"recommandation_globale":""}
 
-Réponds UNIQUEMENT en JSON valide, sans markdown, sans commentaire. Structure exacte requise :
-
-{
-  "titre_analyse": "string (nom synthétique de l'événement)",
-  "synthese_initiale": "string (résumé de la situation de départ en 2-3 phrases, ton opérationnel)",
-  "scenarios": [
-    {
-      "id": "optimiste",
-      "label": "Scénario optimiste",
-      "resume": "string (phrase synthétique — ce qui se passe dans ce scénario)",
-      "probabilite": number (0-100),
-      "confiance_ia": number (0-100, ton niveau de confiance dans cette estimation),
-      "niveau_alerte_final": "Veille|Vigilance|Alerte|Urgence|Catastrophe",
-      "timeline": [
-        { "heure": "string (ex : H+1, H+6, J+1)", "evenement": "string (ce qui se passe à cet instant)" }
-      ],
-      "effets_cascade": ["string"],
-      "communes_impactees": ["string (noms de communes BDR)"],
-      "actions_prioritaires": ["string (action concrète, formulée à l'impératif, destinée au préfet ou au SIRACEDPC)"],
-      "points_vigilance": "string (1-2 phrases sur les signaux d'alerte à surveiller pour ce scénario)"
-    }
-  ],
-  "recommandation_globale": "string (message synthétique pour le préfet, 2-3 phrases, ton direct et factuel)"
-}
-
-Contraintes :
-- Les 4 scénarios sont dans l'ordre : optimiste, probable, dégradé, catastrophique
-- Le scénario probable doit avoir la probabilité la plus haute
-- La somme des probabilités n'a pas à faire 100 (ce sont des probabilités indépendantes)
-- Les communes citées dans communes_impactees doivent être réelles et situées dans les BDR ou départements limitrophes
-- Les actions doivent être concrètes, opérationnelles, non génériques
-- Adapte l'analyse au contexte spécifique BDR : Mistral, relief calcaire, urbanisation dense autour de Marseille/Aix, axes A8/A51, réseau RTE, risques SEVESO
-- Chaque timeline doit avoir 4 à 6 jalons
-- Chaque liste d'actions doit avoir 3 à 5 éléments
-- JSON uniquement, aucun texte avant ou après`;
+Contraintes strictes pour rester sous 2000 tokens :
+- synthese_initiale : 2 phrases max
+- resume : 1 phrase par scénario
+- timeline : 3 jalons max par scénario, evenement en 10 mots max
+- effets_cascade : 2 éléments max, 8 mots max chacun
+- communes_impactees : 3 maxi, communes réelles BDR uniquement
+- actions_prioritaires : 3 max, formulées à l'impératif, 12 mots max
+- points_vigilance : 1 phrase
+- recommandation_globale : 2 phrases max
+- Contexte BDR : Mistral, A8/A51, RTE FAVARY, SEVESO, relief calcaire
+- JSON pur uniquement, zéro texte avant ou après`;
 
   if(!apiKey) { showToast('⚠ Aucune clé API configurée.', 'err'); changeApiKey(); return; }
 
@@ -1276,7 +1253,7 @@ Contraintes :
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
+        max_tokens: 2000,
         system: systemPrompt,
         messages: [{ role:'user', content: `Analyse cette situation de crise et génère les 4 scénarios d'évolution :\n\n${contextBloc}` }]
       })
